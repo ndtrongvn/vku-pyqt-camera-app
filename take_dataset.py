@@ -7,8 +7,6 @@ from PyQt5.QtMultimediaWidgets import *
 from PyQt5 import QtCore
 import constant
 from pathlib import Path
-from mtcnn import MTCNN
-import cv2
 
 import os
 import sys
@@ -40,7 +38,7 @@ class Worker_Capture(QObject):
         self.is_finished = True
 
 class MainWindow(QMainWindow):
-    detector = MTCNN()
+
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setMinimumSize(QtCore.QSize(1000, 500))
@@ -100,8 +98,7 @@ class MainWindow(QMainWindow):
         self.vbox.addWidget(self.btn_takephoto)
         self.vbox.addStretch()
         self.leftWidget.setLayout(self.vbox)
-        # self.btn_takephoto.clicked.connect(self.runLongTask)
-        self.btn_takephoto.clicked.connect(self.take_photo)
+        self.btn_takephoto.clicked.connect(self.runLongTask)
 
     def select_camera(self, i):
         print('Changing to camera ', i)
@@ -137,15 +134,7 @@ class MainWindow(QMainWindow):
         ))
         Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
         self.capture.capture(output_path)
-        while not Path(output_path).exists():
-            time.sleep(1)
-        img = cv2.cvtColor(cv2.imread(output_path), cv2.COLOR_BGR2RGB)
-        out = detector.detect_faces(img)
-        if len(out) > 1:
-            self.save_seq += 1
-            self.status.showMessage(f"Must take {5 - n} photos remaining")
-        else:
-            self.status.showMessage("Image not including FACE! Please try again")
+        self.save_seq += 1
 
     def showdialog(self, dialog_type, content):
         title = constant.dialog_type[dialog_type]
