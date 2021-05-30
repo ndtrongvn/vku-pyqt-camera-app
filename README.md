@@ -1,11 +1,18 @@
-# camera app made using pyqt5 python
+# VKU CAMERA APP DEMO 
 
 # REQUIREMENTS:
  - PYTHON 3X
  - PYQT5 LIBRARY
 
-# RUN:
-``` cd ${workdir} ```
+# INSTALL ENVIRONMENTS
+run command: ``` pip install -r requirements.txt ```
 
-``` python camera.py ```
+# RUN:
+
+ - For taking dataset: ``` python take_dataset.py ```
+ - For training: ``` python train.py ```
+ - For view result prediction: ``` python view.py ```
+
+# Demo:
+See demo here: [Youtube](https://youtu.be/WcunPgJPvy4)
 

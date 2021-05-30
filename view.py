@@ -17,7 +17,6 @@ import tensorflow.keras.backend as K
 import cv2
 import time
 
-cap = cv2.VideoCapture(0)
 model = Sequential()
 model.add(ZeroPadding2D((1,1),input_shape=(224,224, 3)))
 model.add(Convolution2D(64, (3, 3), activation='relu'))
@@ -61,22 +60,27 @@ model.load_weights('vgg_face_weights.h5')
 vgg_face=Model(inputs=model.layers[0].input,outputs=model.layers[-2].output)
 
 person_rep = {
-    0: {'id':'SV_0001', 'name': 'Nguyen Bao M. Hoang', 'class': '17IT1', 'dob': '04/04/1999'},
-    1: {'id':'SV_0002', 'name': 'Dao Minh Quan', 'class': '18IT3', 'dob': '06/09/2000'}
+    2: {'id':'17IT112', 'name': 'Nguyen Dinh Trong', 'class': '17IT2', 'dob': '24/04/1999'},
+    0: {'id':'SV_0001', 'name': 'Nguyen Bao Minh Hoang', 'class': '17IT1', 'dob': '06/09/1999'},
+    1: {'id':'SV_0002', 'name': 'Dao Quan', 'class': '18IT3', 'dob': '06/12/2000'}
 }
 detector = MTCNN()
 classifier_model=tf.keras.models.load_model('face_classifier_model.h5')
+cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
+cap.set(cv2.CAP_PROP_FPS, 12)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 class VideoThread(QThread):
     change_pixmap_signal = pyqtSignal(np.ndarray)
     change_info = pyqtSignal(dict)
-
     def run(self):
         # capture from web cam
-        cap = cv2.VideoCapture(0)
         while True:
             ret, frame = cap.read()
-            faces = detector.detect_faces(frame)
+            if ret:
+                faces = detector.detect_faces(frame)
             _dict = {'id':'0000', 'name': 'NoName', 'class': 'None', 'dob': '00/00/0000'}
             for face in faces:
                 left, top, width, height = face['box']
@@ -93,17 +97,18 @@ class VideoThread(QThread):
 
                 embed=K.eval(img_encode)
                 person=classifier_model.predict(embed)
+                print(person)
                 _dict=person_rep[np.argmax(person)]
 
                 cv2.rectangle(frame,(left,top),(left+width,top+height),(0,255,0), 2)
-                # frame=cv2.putText(frame,_dict['name'],(left,top+30),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,255),2,cv2.LINE_AA) 
+                frame=cv2.putText(frame,_dict['name'],(left,top+30),cv2.FONT_HERSHEY_SIMPLEX,1,(255,0,255),2,cv2.LINE_AA) 
             self.change_pixmap_signal.emit(frame)
             self.change_info.emit(_dict)
 
 class App(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Vku Recognizing Demo App")
+        self.setWindowTitle("VKU Recognizing Demo App")
         self.display_width = 700
         self.display_height = 1200
         # create the label that holds the image

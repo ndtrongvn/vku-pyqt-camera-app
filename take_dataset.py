@@ -11,6 +11,65 @@ from pathlib import Path
 import os
 import sys
 import time
+import glob
+import random
+from pathlib import Path
+
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential,Model
+from tensorflow.keras.layers import ZeroPadding2D,Convolution2D,MaxPooling2D
+from tensorflow.keras.layers import Dense,Dropout,Softmax,Flatten,Activation,BatchNormalization
+from tensorflow.keras.preprocessing.image import load_img,img_to_array
+from tensorflow.keras.applications.imagenet_utils import preprocess_input
+import tensorflow.keras.backend as K
+from mtcnn import MTCNN
+import cv2
+
+model = Sequential()
+model.add(ZeroPadding2D((1,1),input_shape=(224,224, 3)))
+model.add(Convolution2D(64, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(128, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(128, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(256, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(256, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(256, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(512, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(512, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(512, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(512, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(512, (3, 3), activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Convolution2D(512, (3, 3), activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
+model.add(Convolution2D(4096, (7, 7), activation='relu'))
+model.add(Dropout(0.5))
+model.add(Convolution2D(4096, (1, 1), activation='relu'))
+model.add(Dropout(0.5))
+model.add(Convolution2D(2622, (1, 1)))
+model.add(Flatten())
+model.add(Activation('softmax'))
+model.load_weights('vgg_face_weights.h5')
+vgg_face=Model(inputs=model.layers[0].input,outputs=model.layers[-2].output)
+
+detector = MTCNN()
 
 class Worker(QObject):
     finished = pyqtSignal()
@@ -31,7 +90,7 @@ class Worker_Capture(QObject):
         for i in range(1000):
             if self.is_finished:
                 break
-            time.sleep(0.1)
+            time.sleep(0.2)
             self.progress.emit(i + 1)
         self.finished.emit()
     def stop(self):
@@ -152,6 +211,21 @@ class MainWindow(QMainWindow):
     def reportProgress_capture(self, n):
         print(f'Taking photo {n}')
         self.take_photo()
+
+    def crop_raw_face(self, uid):
+        Path(f'./traindata/{uid}').mkdir(parents=True, exist_ok=True)
+        paths = glob.glob(f'./photos/{uid}/*.jpg') # './images/*.jpg'
+        for index, path in enumerate(paths):
+            try:
+                img = cv2.imread(path)
+                faces = detector.detect_faces(img)
+                for face in faces:
+                    print(face)
+                    left, top, width, height = face['box']
+                    img = img[top:top+height, left:left+width]
+                    cv2.imwrite(f'./traindata/{uid}/frame_{index}_{random.randint(0, 1000)}.jpg', img)
+            except:
+                print("exept: " + path)
     
     def runLongTask(self):
         uid = self.textbox_id.text().strip()
@@ -185,6 +259,7 @@ class MainWindow(QMainWindow):
         self.thread_capture.start()
 
         def on_finished():
+            self.crop_raw_face(uid)
             self.btn_takephoto.setEnabled(True)
             self.cameraComboBox.setEnabled(True)
             self.textbox_id.setEnabled(True)
@@ -201,6 +276,7 @@ class MainWindow(QMainWindow):
         self.thread.finished.connect(
             lambda: on_finished()
         )
+    
         
 
 if __name__ == '__main__':
